@@ -156,8 +156,19 @@ void SunkAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
 
         // ..do something to the data...
     }
+    
+   
 }
-
+juce::AudioProcessorValueTreeState::ParameterLayout SunkAudioProcessor::createParameterLayout()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("Speed", 1), "Speed", juce::NormalisableRange<float>(-10.0f, 10.0f, 0.1f, 1.0f), 0.0f));
+    
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID("Is Sunk", 1), "Is Sunk", false));
+    
+    return layout;
+}
+ 
 //==============================================================================
 bool SunkAudioProcessor::hasEditor() const
 {
@@ -166,7 +177,8 @@ bool SunkAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* SunkAudioProcessor::createEditor()
 {
-    return new SunkAudioProcessorEditor (*this);
+    //return new SunkAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
