@@ -8,7 +8,6 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-
 //==============================================================================
 SunkAudioProcessor::SunkAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -95,6 +94,10 @@ void SunkAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    setLatencySamples(fft[0].getLatencyInSamples());
+    
+    fft[0].reset();
+    fft[1].reset();
 }
 
 void SunkAudioProcessor::releaseResources()
@@ -103,60 +106,48 @@ void SunkAudioProcessor::releaseResources()
     // spare memory, etc.
 }
 
-#ifndef JucePlugin_PreferredChannelConfigurations
 bool SunkAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
-  #if JucePlugin_IsMidiEffect
-    juce::ignoreUnused (layouts);
-    return true;
-  #else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    // Some plugin hosts, such as certain GarageBand versions, will only
-    // load plugins that support stereo bus layouts.
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
+    // Allow only stereo input and output
+        if (layouts.getMainInputChannelSet() != juce::AudioChannelSet::stereo()
+            || layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+            return false;
 
-    // This checks if the input layout matches the output layout
-   #if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-        return false;
-   #endif
-
-    return true;
-  #endif
+        return true;
 }
-#endif
 
 void SunkAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
-
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
-    }
+    auto numInputChannels  = getTotalNumInputChannels();
+    auto numOutputChannels = getTotalNumOutputChannels();
+    auto numSamples = buffer.getNumSamples();
     
+    for (auto i = numInputChannels; i < numOutputChannels; ++i){
+        buffer.clear(i, 0, numSamples);
+    }
+
+    bool bypassed = apvts.getRawParameterValue("Is Sunk")->load();
+    
+    float* channelL = buffer.getWritePointer(0);
+    float* channelR = buffer.getWritePointer(1);
+    
+    for (int sample = 0; sample < numSamples; ++sample){
+        float sampleL = channelL[sample];
+        float sampleR = channelR[sample];
+        
+        sampleL = fft[0].processSample(sampleL, bypassed);
+        sampleR = fft[1].processSample(sampleR, bypassed);
+        
+        channelL[sample] = sampleL;
+        channelR[sample] = sampleR;
+        /*
+        for (int channel = 0; channel < numInputChannels; ++channel) {
+                auto* channelData = buffer.getWritePointer(channel);
+                fft[channel].processBlock(channelData, numSamples, bypassed);
+            }
+        */
+    }
    
 }
 juce::AudioProcessorValueTreeState::ParameterLayout SunkAudioProcessor::createParameterLayout()
@@ -187,12 +178,17 @@ void SunkAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
+    copyXmlToBinary(*apvts.copyState().createXml(), destData);
 }
 
 void SunkAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
+    if (xml.get() != nullptr && xml->hasTagName(apvts.state.getType())){
+        apvts.replaceState(juce::ValueTree::fromXml(*xml));
+    }
 }
 
 //==============================================================================
