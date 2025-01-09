@@ -23,15 +23,15 @@ void Sunk_FFTProcessor::reset()
     std::fill(outputFifo.begin(), outputFifo.end(), 0.0f);
 }
 
-void Sunk_FFTProcessor::processBlock(float* data, int numSamples, bool bypassed)
+void Sunk_FFTProcessor::processBlock(float* data, int numSamples, bool bypassed, bool isSunk)
 {
     for (int i = 0; i < numSamples; ++i){
-        data[i] = processSample(data[i], bypassed);
+        data[i] = processSample(data[i], bypassed, isSunk);
     }
 }
 
 
-float Sunk_FFTProcessor::processSample(float sample, bool bypassed)
+float Sunk_FFTProcessor::processSample(float sample, bool bypassed, bool isSunk)
 {
     // push the new sample value into the input FIFO
     inputFifo[pos] = sample;
@@ -49,18 +49,39 @@ float Sunk_FFTProcessor::processSample(float sample, bool bypassed)
     count += 1;
     if (count == hopSize) {
         count = 0;
-        processFrame(bypassed);
+        processFrame(bypassed, isSunk);
         
     }
     
     return outputSample;
 }
 
-void Sunk_FFTProcessor::processFrame(bool bypassed)
+void Sunk_FFTProcessor::processFrame(bool bypassed, bool isSunk)
 {
+    static std::vector<float> frozenFFTData(fftSize, 0.0f); // Store frozen FFT data
+
+    
     const float* inputPtr = inputFifo.data();
     float* fftPtr = fftData.data();
     
+    //freezing stuff
+    if (isSunk){
+        std::copy(frozenFFTData.begin(), frozenFFTData.end(), fftPtr);
+        fft.performRealOnlyInverseTransform(fftPtr);
+        window.multiplyWithWindowingTable(fftPtr, fftSize);
+        
+        for (int i = 0; i < fftSize; ++i){
+            fftPtr[i] *= windowCorrection;
+        }
+        for (int i = 0; i < pos; ++i){
+            outputFifo[i] += fftData[i + fftSize - pos];
+        }
+        for (int i = 0; i < fftSize - pos; ++i){
+            outputFifo[i + pos] += fftData[i];
+        }
+        return;
+    }
+    //normal processing. copy input data to FFT buffer
     std::memcpy(fftPtr, inputPtr + pos, (fftSize - pos) * sizeof(float));
     if (pos > 0){
         std::memcpy(fftPtr + fftSize - pos, inputPtr, pos * sizeof(float));
@@ -78,7 +99,9 @@ void Sunk_FFTProcessor::processFrame(bool bypassed)
         //perform IFFT
         fft.performRealOnlyInverseTransform(fftPtr);
     }
-    
+    if (!isSunk) {
+            std::copy(fftPtr, fftPtr + fftSize, frozenFFTData.begin());
+        }
     //apply the window again for resynthesis
     window.multiplyWithWindowingTable(fftPtr, fftSize);
     
@@ -93,12 +116,17 @@ void Sunk_FFTProcessor::processFrame(bool bypassed)
     for (int i = 0; i < fftSize - pos; ++i){
         outputFifo[i + pos] += fftData[i];
     }
+    
+    //count += static_cast<int>(hopSize / playbackRate);
 }
 
 void Sunk_FFTProcessor::processSpectrum(float* data, int numBins)
 {
     //reinterpret real, imaginary, real, imaginary pattern of floats to complex numbers
     auto* cdata = reinterpret_cast<std::complex<float>*>(data);
+    
+
+    
     
     for (int i = 0; i < numBins; ++i){
         //usually want to work with the magnitude and phanse rather than real and imaginary numbers directly
@@ -109,7 +137,10 @@ void Sunk_FFTProcessor::processSpectrum(float* data, int numBins)
         
         phase *= float(i);
         
+        
+        
         //convert magnitude and phase back into a complex number
         cdata[i] = std::polar(magnitude, phase);
     }
+     
 }

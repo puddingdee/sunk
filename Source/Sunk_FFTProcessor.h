@@ -16,10 +16,10 @@ public:
     
     int getLatencyInSamples() const { return fftSize; };
     void reset();
-    float processSample(float sample, bool bypassed);
-    void processBlock(float* data, int numSamples, bool bypassed);
+    float processSample(float sample, bool bypassed, bool isSunk);
+    void processBlock(float* data, int numSamples, bool bypassed, bool isSunk);
 private:
-    void processFrame(bool bypasssed);
+    void processFrame(bool bypasssed, bool isSunk);
     void processSpectrum(float* data, int numSamples);
     //constants
     static constexpr int fftOrder = 10;
@@ -43,6 +43,8 @@ private:
     
     //FFT workspace. contains interleaved complex numbers
     std::array<float, fftSize * 2> fftData;
-    
+   
+    //sunk vars
+    float playbackRate = 1.0f;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Sunk_FFTProcessor)
 };

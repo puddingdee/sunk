@@ -127,7 +127,8 @@ void SunkAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
         buffer.clear(i, 0, numSamples);
     }
 
-    bool bypassed = apvts.getRawParameterValue("Is Sunk")->load();
+    bool bypassed = apvts.getRawParameterValue("Bypassed")->load();
+    bool isSunk = apvts.getRawParameterValue("Is Sunk")->load();
     
     float* channelL = buffer.getWritePointer(0);
     float* channelR = buffer.getWritePointer(1);
@@ -136,8 +137,8 @@ void SunkAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
         float sampleL = channelL[sample];
         float sampleR = channelR[sample];
         
-        sampleL = fft[0].processSample(sampleL, bypassed);
-        sampleR = fft[1].processSample(sampleR, bypassed);
+        sampleL = fft[0].processSample(sampleL, bypassed, isSunk);
+        sampleR = fft[1].processSample(sampleR, bypassed, isSunk);
         
         channelL[sample] = sampleL;
         channelR[sample] = sampleR;
@@ -156,7 +157,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout SunkAudioProcessor::createPa
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("Speed", 1), "Speed", juce::NormalisableRange<float>(-10.0f, 10.0f, 0.1f, 1.0f), 0.0f));
     
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID("Is Sunk", 1), "Is Sunk", false));
-    
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID("Bypassed", 1), "Bypassed", false));
+
     return layout;
 }
  
