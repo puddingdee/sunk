@@ -66,13 +66,32 @@ void Sunk_FFTProcessor::processFrame(bool bypassed, bool isSunk)
     
     //freezing stuff
     if (isSunk){
-        std::copy(frozenFFTData.begin(), frozenFFTData.end(), fftPtr);
-        fft.performRealOnlyInverseTransform(fftPtr);
+//        std::copy(frozenFFTData.begin(), frozenFFTData.end(), fftPtr);
+        std::memcpy(fftPtr, inputPtr + pos, (fftSize - pos) * sizeof(float));
+        if (pos > 0){
+            std::memcpy(fftPtr + fftSize - pos, inputPtr, pos * sizeof(float));
+        }
+        // apply the window to avoid spectral leakage
         window.multiplyWithWindowingTable(fftPtr, fftSize);
         
+        //do the ffts
+    
+        // perform forward fft
+        fft.performRealOnlyForwardTransform(fftPtr, true);
+        //do stuff with the data
+        processSpectrum(fftPtr, numBins);
+        //perform IFFT
+        fft.performRealOnlyInverseTransform(fftPtr);
+    
+        
+        //apply the window again for resynthesis
+        window.multiplyWithWindowingTable(fftPtr, fftSize);
+        
+        // scale down the output samples because of the overlapping windows
         for (int i = 0; i < fftSize; ++i){
             fftPtr[i] *= windowCorrection;
         }
+       // add the IFFT results ot the output FIFO
         for (int i = 0; i < pos; ++i){
             outputFifo[i] += fftData[i + fftSize - pos];
         }
@@ -117,7 +136,6 @@ void Sunk_FFTProcessor::processFrame(bool bypassed, bool isSunk)
         outputFifo[i + pos] += fftData[i];
     }
     
-    //count += static_cast<int>(hopSize / playbackRate);
 }
 
 void Sunk_FFTProcessor::processSpectrum(float* data, int numBins)
@@ -135,7 +153,7 @@ void Sunk_FFTProcessor::processSpectrum(float* data, int numBins)
         
         // this is the spot for spectral processing
         
-        phase *= float(i);
+//        phase *= float(i);
         
         
         
