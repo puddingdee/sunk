@@ -64,42 +64,7 @@ void Sunk_FFTProcessor::processFrame(bool bypassed, bool isSunk)
     const float* inputPtr = inputFifo.data();
     float* fftPtr = fftData.data();
     
-    //freezing stuff
-    if (isSunk){
-//        std::copy(frozenFFTData.begin(), frozenFFTData.end(), fftPtr);
-        std::memcpy(fftPtr, inputPtr + pos, (fftSize - pos) * sizeof(float));
-        if (pos > 0){
-            std::memcpy(fftPtr + fftSize - pos, inputPtr, pos * sizeof(float));
-        }
-        // apply the window to avoid spectral leakage
-        window.multiplyWithWindowingTable(fftPtr, fftSize);
-        
-        //do the ffts
-    
-        // perform forward fft
-        fft.performRealOnlyForwardTransform(fftPtr, true);
-        //do stuff with the data
-        processSpectrum(fftPtr, numBins);
-        //perform IFFT
-        fft.performRealOnlyInverseTransform(fftPtr);
-    
-        
-        //apply the window again for resynthesis
-        window.multiplyWithWindowingTable(fftPtr, fftSize);
-        
-        // scale down the output samples because of the overlapping windows
-        for (int i = 0; i < fftSize; ++i){
-            fftPtr[i] *= windowCorrection;
-        }
-       // add the IFFT results ot the output FIFO
-        for (int i = 0; i < pos; ++i){
-            outputFifo[i] += fftData[i + fftSize - pos];
-        }
-        for (int i = 0; i < fftSize - pos; ++i){
-            outputFifo[i + pos] += fftData[i];
-        }
-        return;
-    }
+
     //normal processing. copy input data to FFT buffer
     std::memcpy(fftPtr, inputPtr + pos, (fftSize - pos) * sizeof(float));
     if (pos > 0){
@@ -114,13 +79,11 @@ void Sunk_FFTProcessor::processFrame(bool bypassed, bool isSunk)
         // perform forward fft
         fft.performRealOnlyForwardTransform(fftPtr, true);
         //do stuff with the data
-        processSpectrum(fftPtr, numBins);
+        processSpectrum(fftPtr, numBins, isSunk);
         //perform IFFT
         fft.performRealOnlyInverseTransform(fftPtr);
     }
-    if (!isSunk) {
-            std::copy(fftPtr, fftPtr + fftSize, frozenFFTData.begin());
-        }
+
     //apply the window again for resynthesis
     window.multiplyWithWindowingTable(fftPtr, fftSize);
     
@@ -138,27 +101,55 @@ void Sunk_FFTProcessor::processFrame(bool bypassed, bool isSunk)
     
 }
 
-void Sunk_FFTProcessor::processSpectrum(float* data, int numBins)
+void Sunk_FFTProcessor::processSpectrum(float* data, int numBins, bool isSunk)
 {
     //reinterpret real, imaginary, real, imaginary pattern of floats to complex numbers
     auto* cdata = reinterpret_cast<std::complex<float>*>(data);
+    static std::vector<float> initialPhases(numBins);
+    static std::vector<float> targetPhases(numBins);
+    
+    if (isSunk){
+        if (needFreeze){
+            frozenSpectrum.resize(numBins);
+            for (int i = 0; i < numBins; ++i){
+                frozenSpectrum[i] = cdata[i];
+            }
+            needFreeze = false;
+        }
+        
+        //use frozen magnitude, keep current phases
+        for (int i = 0; i < numBins; i++){
+            float currentPhase = std::arg(cdata[i]);
+            float mag = std::abs(frozenSpectrum[i]);
+            
+            currentPhase *= float(i);
+            
+            cdata[i] = std::polar(mag, currentPhase);
+        }
+    }
+    else{
+        needFreeze = true;
+        
+        
+    }
+    
     
 
-    
-    
-    for (int i = 0; i < numBins; ++i){
-        //usually want to work with the magnitude and phanse rather than real and imaginary numbers directly
-        float magnitude = std::abs(cdata[i]);
-        float phase = std::arg(cdata[i]);
-        
-        // this is the spot for spectral processing
-        
+//    
+//    for (int i = 0; i < numBins; ++i){
+//        //usually want to work with the magnitude and phanse rather than real and imaginary numbers directly
+//        float magnitude = std::abs(cdata[i]);
+//        float phase = std::arg(cdata[i]);
+//        
+//        // this is the spot for spectral processing
+//        
 //        phase *= float(i);
-        
-        
-        
-        //convert magnitude and phase back into a complex number
-        cdata[i] = std::polar(magnitude, phase);
-    }
+//
+//
+//        
+//        
+//        //convert magnitude and phase back into a complex number
+//        cdata[i] = std::polar(magnitude, phase);
+//    }
      
 }

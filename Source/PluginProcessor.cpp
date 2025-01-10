@@ -96,6 +96,8 @@ void SunkAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     // initialisation that you need..
     setLatencySamples(fft[0].getLatencyInSamples());
     
+    
+    
     fft[0].reset();
     fft[1].reset();
 }

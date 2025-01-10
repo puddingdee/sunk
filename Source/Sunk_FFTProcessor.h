@@ -18,9 +18,11 @@ public:
     void reset();
     float processSample(float sample, bool bypassed, bool isSunk);
     void processBlock(float* data, int numSamples, bool bypassed, bool isSunk);
+    bool needFreeze = true;
+    std::vector<std::complex<float>> frozenSpectrum;
 private:
     void processFrame(bool bypasssed, bool isSunk);
-    void processSpectrum(float* data, int numSamples);
+    void processSpectrum(float* data, int numSamples, bool isSunk);
     //constants
     static constexpr int fftOrder = 10;
     static constexpr int fftSize = 1 << fftOrder; // 1024 samples
