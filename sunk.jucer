@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="wS9DTC" name="sunk" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginManufacturer="tadware">
   <MAINGROUP id="nGA9Xb" name="sunk">
     <GROUP id="{D1A7C943-6BCC-3CF6-4752-19B4AB047E6A}" name="Source">
       <FILE id="N7MFX7" name="Sunk_FFTProcessor.cpp" compile="1" resource="0"
