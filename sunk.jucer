@@ -4,6 +4,10 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="nGA9Xb" name="sunk">
     <GROUP id="{D1A7C943-6BCC-3CF6-4752-19B4AB047E6A}" name="Source">
+      <FILE id="N7MFX7" name="Sunk_FFTProcessor.cpp" compile="1" resource="0"
+            file="Source/Sunk_FFTProcessor.cpp"/>
+      <FILE id="f93fmM" name="Sunk_FFTProcessor.h" compile="0" resource="0"
+            file="Source/Sunk_FFTProcessor.h"/>
       <FILE id="kdKRep" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="LNPYyZ" name="PluginProcessor.h" compile="0" resource="0"
@@ -11,6 +15,11 @@
       <FILE id="MPLRNb" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
       <FILE id="hHgIT4" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+    </GROUP>
+    <GROUP id="{C3A1C0B4-0E22-70F4-E05F-C9D621C919D3}" name="Assets">
+      <FILE id="psj8DN" name="bg.png" compile="0" resource="1" file="Assets/bg.png"/>
+      <FILE id="qbi2J7" name="pressed.png" compile="0" resource="1" file="Assets/pressed.png"/>
+      <FILE id="hrQbat" name="unpressed.png" compile="0" resource="1" file="Assets/unpressed.png"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>

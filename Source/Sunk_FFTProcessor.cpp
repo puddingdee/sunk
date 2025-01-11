@@ -122,7 +122,6 @@ void Sunk_FFTProcessor::processSpectrum(float* data, int numBins, bool isSunk)
             float currentPhase = std::arg(cdata[i]);
             float mag = std::abs(frozenSpectrum[i]);
             
-            currentPhase *= float(i);
             
             cdata[i] = std::polar(mag, currentPhase);
         }

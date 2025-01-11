@@ -15,6 +15,9 @@ SunkAudioProcessorEditor::SunkAudioProcessorEditor (SunkAudioProcessor& p)
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
+    
+    initWindow();
+    
     setSize (400, 300);
 }
 
@@ -25,12 +28,8 @@ SunkAudioProcessorEditor::~SunkAudioProcessorEditor()
 //==============================================================================
 void SunkAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
-
-    g.setColour (juce::Colours::white);
-    g.setFont (juce::FontOptions (15.0f));
-    g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);
+    bg = juce::ImageCache::getFromMemory(BinaryData::bg_png, BinaryData::bg_pngSize);
+    g.drawImageWithin(bg, 0, 0, getWidth(), getHeight(), juce::RectanglePlacement::stretchToFit);
 }
 
 void SunkAudioProcessorEditor::resized()
