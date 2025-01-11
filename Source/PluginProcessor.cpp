@@ -171,8 +171,8 @@ bool SunkAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* SunkAudioProcessor::createEditor()
 {
-    //return new SunkAudioProcessorEditor (*this);
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new SunkAudioProcessorEditor (*this);
+//    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
